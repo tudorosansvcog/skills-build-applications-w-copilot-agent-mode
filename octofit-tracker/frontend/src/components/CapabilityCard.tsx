@@ -9,19 +9,19 @@ type ResourceState<T> =
 type Props<T> = {
   title: string;
   description: string;
-  endpoint: string;
+  load: () => Promise<T>;
   emptyMessage: string;
   isEmpty: (data: T) => boolean;
   children: (data: T) => ReactNode;
 };
 
-export function CapabilityCard<T>({ title, description, endpoint, emptyMessage, isEmpty, children }: Props<T>) {
+export function CapabilityCard<T>({ title, description, load, emptyMessage, isEmpty, children }: Props<T>) {
   const [resource, setResource] = useState<ResourceState<T>>({ status: 'loading' });
 
   useEffect(() => {
     let active = true;
     setResource({ status: 'loading' });
-    getJson<T>(endpoint)
+    load()
       .then((data) => {
         if (active) setResource({ status: 'success', data });
       })
@@ -29,7 +29,7 @@ export function CapabilityCard<T>({ title, description, endpoint, emptyMessage, 
         if (active) setResource({ status: 'error', message: error instanceof Error ? error.message : 'Unexpected error' });
       });
     return () => { active = false; };
-  }, [endpoint]);
+  }, [load]);
 
   return (
     <section className="card h-100">
