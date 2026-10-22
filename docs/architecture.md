@@ -28,22 +28,24 @@ OctoFit Tracker is a three-tier application for a school fitness program. The st
 
 ## Implementation decisions
 
-Record your plan here before editing code.
+Plan recorded before implementation:
 
-- Presentation tier decision:
-- Logic tier decision:
-- Data tier decision:
-- Activity tracking approach:
-- Team management approach:
-- Leaderboard approach:
-- Workout suggestions approach:
+- Presentation tier decision: Keep React views responsible for presentation and interaction, and use the shared API client for all requests. Each capability view will expose accessible loading, error, empty, and populated states; the browser will continue using relative `/api` paths through the Vite proxy.
+- Logic tier decision: Keep Express route handlers thin and place request validation and domain behavior in the service layer. Return deliberate 4xx responses for invalid input, malformed or missing references, and unknown users; do not let Mongoose cast errors become 500 responses.
+- Data tier decision: Define required fields, references, defaults, and validation in Mongoose models. Keep seed data representative and idempotent, updating only known seeded records and preserving unrelated records.
+- Activity tracking approach: Validate the submitted user and team IDs and confirm both records exist before creating an activity. Persist the references, type, and minutes with centrally computed points and an occurrence date; invalid requests must not create records.
+- Team management approach: Require a team name, retain its submitted name and mascot, and maintain valid member references. Team creation and listing should expose the expected member IDs without moving presentation or persistence logic into routes.
+- Leaderboard approach: Aggregate activity points by team, sort by total points descending, and return each team name, total, and 1-based rank.
+- Workout suggestions approach: Find the user by email, consider their fitness goal and recent activity, then rank matching workouts deterministically and explain the first recommendation with a reason. Return a deliberate 4xx response when no user matches.
+
+Implementation order: complete and verify the models and additive seed first; implement service behavior and API routes against those data contracts next; then connect the frontend views through the shared client and implement their accessible states. This keeps each tier testable before its dependents are built.
 
 ## Test plan
 
-Record the commands you run and what each failure means.
+Record the commands you run and what each failure means. Baseline results below were collected before implementation; contract failures identify unfinished behavior rather than build/type errors.
 
-- Data-tier command: `npm run test:data --prefix octofit-tracker/backend`
-- API command: `npm run test:api --prefix octofit-tracker/backend`
-- Frontend command: `npm test --prefix octofit-tracker/frontend`
-- Backend build command: `npm run build --prefix octofit-tracker/backend`
-- Frontend build command: `npm run build --prefix octofit-tracker/frontend`
+- Data-tier command: `npm run test:data --prefix octofit-tracker/backend` — baseline: 4 of 5 tests fail because required model validation is missing for users, teams, activities, and workouts; idempotent seeding passes.
+- API command: `npm run test:api --prefix octofit-tracker/backend` — baseline: all 4 tests fail. Activity/team creation returns placeholder 501 responses instead of validating requests, the leaderboard is empty, and workout suggestions do not provide the expected reason.
+- Frontend command: `npm test --prefix octofit-tracker/frontend` — baseline: all 15 tests fail. Views do not yet render API data or meet loading, empty, and accessible error-state expectations.
+- Backend build command: `npm run build --prefix octofit-tracker/backend` — baseline passes TypeScript compilation; passing this does not establish contract behavior.
+- Frontend build command: `npm run build --prefix octofit-tracker/frontend` — baseline passes type checking and the production Vite build; passing this does not establish view behavior.
